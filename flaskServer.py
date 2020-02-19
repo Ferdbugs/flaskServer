@@ -2,35 +2,27 @@ import math
 from pomegranate import *
 import flask
 
-def bayesianNetwork():
+def bayesianNetwork(performance,learnerState):
         performance = DiscreteDistribution({'Poor': 1. / 5, 'Moderate': 1. / 5, 'Good': 1. / 5, 'VeryGood': 1. / 5,
                                     'Excellent': 1. / 5})
         learnerState = ConditionalProbabilityTable(
-            [['Poor', 'Novice', 0.50],
-             ['Poor', 'Beginner', 0.30],
+            [['Poor', 'Beginner', 0.80],
              ['Poor', 'Intermediate', 0.15],
              ['Poor', 'Expert', 0.05],
-             ['Moderate', 'Novice', 0.30],
-             ['Moderate', 'Beginner', 0.50],
-             ['Moderate', 'Intermediate', 0.15],
+             ['Moderate', 'Beginner', 0.65],
+             ['Moderate', 'Intermediate', 0.30],
              ['Moderate', 'Expert', 0.05],
-             ['Good', 'Novice', 0.15],
-             ['Good', 'Beginner', 0.25],
-             ['Good', 'Intermediate', 0.45],
-             ['Good', 'Expert', 0.15],
-             ['VeryGood', 'Novice', 0.10],
+             ['Good', 'Beginner', 0.35],
+             ['Good', 'Intermediate', 0.55],
+             ['Good', 'Expert', 0.10],
              ['VeryGood', 'Beginner', 0.15],
-             ['VeryGood', 'Intermediate', 0.40],
+             ['VeryGood', 'Intermediate', 0.50],
              ['VeryGood', 'Expert', 0.35],
-             ['Excellent', 'Novice', 0.05],
              ['Excellent', 'Beginner', 0.15],
-             ['Excellent', 'Intermediate', 0.30],
-             ['Excellent', 'Expert', 0.50]], [performance])
+             ['Excellent', 'Intermediate', 0.35],
+             ['Excellent', 'Expert', 0.60]], [performance])
         contentComplexity = ConditionalProbabilityTable(
-            [['Poor', 'Novice', 'Low', 0.90],
-             ['Poor', 'Novice', 'Medium', 0.07],
-             ['Poor', 'Novice', 'High', 0.03],
-             ['Poor', 'Beginner', 'Low', 0.86],
+            [['Poor', 'Beginner', 'Low', 0.86],
              ['Poor', 'Beginner', 'Medium', 0.11],
              ['Poor', 'Beginner', 'High', 0.03],
              ['Poor', 'Intermediate', 'Low', 0.82],
@@ -39,9 +31,6 @@ def bayesianNetwork():
              ['Poor', 'Expert', 'Low', 0.76],
              ['Poor', 'Expert', 'Medium', 0.18],
              ['Poor', 'Expert', 'High', 0.06],
-             ['Moderate', 'Novice', 'Low', 0.70],
-             ['Moderate', 'Novice', 'Medium', 0.22],
-             ['Moderate', 'Novice', 'High', 0.08],
              ['Moderate', 'Beginner', 'Low', 0.61],
              ['Moderate', 'Beginner', 'Medium', 0.29],
              ['Moderate', 'Beginner', 'High', 0.10],
@@ -51,9 +40,6 @@ def bayesianNetwork():
              ['Moderate', 'Expert', 'Low', 0.42],
              ['Moderate', 'Expert', 'Medium', 0.44],
              ['Moderate', 'Expert', 'High', 0.14],
-             ['Good', 'Novice', 'Low', 0.32],
-             ['Good', 'Novice', 'Medium', 0.52],
-             ['Good', 'Novice', 'High', 0.16],
              ['Good', 'Beginner', 'Low', 0.21],
              ['Good', 'Beginner', 'Medium', 0.61],
              ['Good', 'Beginner', 'High', 0.18],
@@ -63,9 +49,6 @@ def bayesianNetwork():
              ['Good', 'Expert', 'Low', 0.10],
              ['Good', 'Expert', 'Medium', 0.65],
              ['Good', 'Expert', 'High', 0.25],
-             ['VeryGood', 'Novice', 'Low', 0.09],
-             ['VeryGood', 'Novice', 'Medium', 0.61],
-             ['VeryGood', 'Novice', 'High', 0.30],
              ['VeryGood', 'Beginner', 'Low', 0.08],
              ['VeryGood', 'Beginner', 'Medium', 0.56],
              ['VeryGood', 'Beginner', 'High', 0.36],
@@ -75,9 +58,6 @@ def bayesianNetwork():
              ['VeryGood', 'Expert', 'Low', 0.06],
              ['VeryGood', 'Expert', 'Medium', 0.44],
              ['VeryGood', 'Expert', 'High', 0.50],
-             ['Excellent', 'Novice', 'Low', 0.05],
-             ['Excellent', 'Novice', 'Medium', 0.37],
-             ['Excellent', 'Novice', 'High', 0.58],
              ['Excellent', 'Beginner', 'Low', 0.04],
              ['Excellent', 'Beginner', 'Medium', 0.28],
              ['Excellent', 'Beginner', 'High', 0.68],
@@ -100,10 +80,15 @@ def bayesianNetwork():
         network.add_edge(d2, d3)
         network.bake()
 
-        beliefs = network.predict_proba({'performance' : 'Excellent'})
-        beliefs = map(str, beliefs)
-        result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
-
+        if(learnerState=="N/A"):
+                beliefs = network.predict_proba({'performance' : 'Excellent'})
+                beliefs = map(str, beliefs)
+                result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
+        else:
+                beliefs = network.predict_proba({'learnerState' : learnerState, 'performance' : performance})
+                beliefs = map(str, beliefs)
+                result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
+        
         return result
 
 app = flask.Flask(__name__)
@@ -111,8 +96,8 @@ app = flask.Flask(__name__)
 @app.route('/', methods=['GET', 'POST'])
 def handle_request():
         userPerformance = (flask.request.form['performance'])
-        userDifficulty = (flask.request.form['difficulty'])
-        result = bayesianNetwork()
+        userDifficulty = (flask.request.form['learnerState'])
+        result = bayesianNetwork(userPerformance,userDifficulty)
         print(userPerformance)
         print(result)
         
