@@ -86,8 +86,8 @@ def bayesianNetwork(gotPerformance,gotLearnerState):
                 #result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
                 result = network.predict([[gotPerformance,None,None]])
         else:
-                beliefs = network.predict_proba({'learnerState' : gotLearnerState, 'performance' : gotPerformance})
-                beliefs = map(str, beliefs)
+                #beliefs = network.predict_proba({'learnerState' : gotLearnerState, 'performance' : gotPerformance})
+                #beliefs = map(str, beliefs)
                 result = network.predict([[gotPerformance,gotLearnerState,None]])
       
         return result
