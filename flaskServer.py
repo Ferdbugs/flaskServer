@@ -2,7 +2,7 @@ import math
 from pomegranate import *
 import flask
 
-def bayesianNetwork(performance,learnerState):
+def bayesianNetwork(gotPerformance,gotLearnerState):
         performance = DiscreteDistribution({'Poor': 1. / 5, 'Moderate': 1. / 5, 'Good': 1. / 5, 'VeryGood': 1. / 5,
                                     'Excellent': 1. / 5})
         learnerState = ConditionalProbabilityTable(
@@ -80,15 +80,16 @@ def bayesianNetwork(performance,learnerState):
         network.add_edge(d2, d3)
         network.bake()
 
-        if(learnerState=="N/A"):
-                beliefs = network.predict_proba({'performance' : 'Excellent'})
-                beliefs = map(str, beliefs)
-                result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
+        if(gotLearnerState=='N/A'):
+                #beliefs = network.predict_proba({'performance' : gotPerformance})
+                #beliefs = map(str, beliefs)
+                #result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
+                result = network.predict([[gotPerformance,None,None]])
         else:
-                beliefs = network.predict_proba({'learnerState' : learnerState, 'performance' : performance})
+                beliefs = network.predict_proba({'learnerState' : gotLearnerState, 'performance' : gotPerformance})
                 beliefs = map(str, beliefs)
-                result = ("n".join( "{}t{}".format( state.name, str(belief) ) for state, belief in zip( network.states, beliefs )))
-        
+                result = network.predict([[gotPerformance,gotLearnerState,None]])
+      
         return result
 
 app = flask.Flask(__name__)
@@ -96,12 +97,12 @@ app = flask.Flask(__name__)
 @app.route('/', methods=['GET', 'POST'])
 def handle_request():
         userPerformance = (flask.request.form['performance'])
-        userDifficulty = (flask.request.form['learnerState'])
-        result = bayesianNetwork(userPerformance,userDifficulty)
-        print(userPerformance)
-        print(result)
+        learnerState = (flask.request.form['learnerState'])
+        result = bayesianNetwork(userPerformance,learnerState)
+        print(result[0][2])
+        contentComplexity = result[0][2]
         
-        return "Hello"
+        return contentComplexity
 
 app.run(host="0.0.0.0", port=5000, debug=True)
 
